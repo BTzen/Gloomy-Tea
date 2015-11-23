@@ -67,7 +67,7 @@ public class Neuron {
 			}
 			s = s.substring(0, s.length() - 2) + "]";
 			
-			s += ", Error: " + ((error == -1) ? "-" : error);
+			s += ", Error: " + ((error == -1) ? "-" : error + "\n");
 		}
 		
 		return s;

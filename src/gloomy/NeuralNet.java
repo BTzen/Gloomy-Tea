@@ -14,42 +14,47 @@ import java.util.Random;
 public class NeuralNet {
 
 	final static int INPUT_LAYER_NODES = 4;
-	final int hiddenLayerNodes;				//needs to be 4 for the problem according to assignment, so this should be changed to a constant
-	final static int OUTPUT_LAYER_NODES = 1;	//apparently needs to be 1
+	final static int  HIDDEN_LAYER_NODES = 4;		
+	final static int OUTPUT_LAYER_NODES = 1;
 	final static long SEED = 4334562;
-	final static double LEARNING_RATE = 0.5;
+	final double learningRate;
 	final int maxEpoch;
 	
 	private List<Neuron> neurons;
 	private int[] networkSize; 		// # of indices represent the # of layers and the value at each index the # of neurons in that layer
 	private List<int[]> examples;	// holds all 4 bit combinations
 	private List<int[]> trainingSet;
+	private int correctClassifications;
 	private Random rnd;					
 
-	public NeuralNet(int hiddenLayerNodes) {
+	public NeuralNet(double learningRate, int maxEpochs) {
 		
-		maxEpoch = 4;
+		maxEpoch = maxEpochs;
+		this.learningRate = learningRate;
+		correctClassifications = 0;
 		rnd = new Random(SEED);
 		neurons = new ArrayList<Neuron>();
-		this.hiddenLayerNodes = hiddenLayerNodes;
-		networkSize = new int[] { INPUT_LAYER_NODES, hiddenLayerNodes, OUTPUT_LAYER_NODES };
+		networkSize = new int[] { INPUT_LAYER_NODES, HIDDEN_LAYER_NODES, OUTPUT_LAYER_NODES };
 		examples = new ArrayList<int[]>();
 
 		initExamples();
 		trainingSet = new ArrayList<int[]>();
 		trainingSet.add(examples.get(3));
+		trainingSet = examples;
 		initNetwork();
 	}
 
-	/**
+	/**DEBUG method
 	 * Prints each node out as a line of text
 	 */
 	public void printNetwork() {
 		for (Neuron neuron : neurons) {
-			System.out.println(neuron.toString() + "\n");
+			System.out.print(neuron.toString() + "\n");
 		}
+		System.out.println();
 	}
-	// does the actual work for us
+	
+	// trains neural net using back propagation
 	public void train() { 
 		
 		int epoch = 0;
@@ -57,22 +62,49 @@ public class NeuralNet {
 		double expectedOutput = 0;
 		double error = 0;
 		
-		while ( epoch != maxEpoch) {	// all examples not classified correctly && not at maximum epoch
+		while (correctClassifications != trainingSet.size() || epoch <= maxEpoch) {	// all examples not classified correctly && not at maximum epoch
 			Collections.shuffle(examples, rnd);
-			for (int[] e : examples) { // each example e in the training set
+			
+			// each example e in the training set
+			for (int[] e : trainingSet) { 
 				actualOutput = getNeuralNetOutput(e); 	// forward pass , check
 				expectedOutput = getEvenParity(e); 
 				error =  expectedOutput - actualOutput;	//(ExpectedOutput - ActualOutput) at the output units 
-				propagateError(error); // Propagate error backwards until all nodes have an error contribution
-//				Update the weights in the network 
-				updateWeights();
-				printNetwork();
+				
+				if (Math.abs(error) < .5)
+					correctClassifications++;
+				
+				propagateError(error); 	// Propagate error backwards until all nodes have an error contribution	
+				updateWeights();		// Update the weights in the network 	
+				//printNetwork();
 			}
+			System.out.println(correctClassifications + " correct classifications");
+			correctClassifications = 0;
 			epoch++;
 		}
+		System.out.println("Training complete");
 	}
 	
-	// DEBUG: seems to work
+	public void run() {
+		
+		double actualOutput = 0;
+		double expectedOutput = 0;
+		
+		for (int[] testInput : trainingSet) {
+			actualOutput = getNeuralNetOutput(testInput); 	// forward pass , check
+			expectedOutput = getEvenParity(testInput); 	
+			printOutput(testInput, actualOutput, expectedOutput);
+		}
+	}
+
+
+	private void printOutput(int[] testInput, double actualOutput, double expectedOutput) {
+		System.out.println(String.format("Input: [ %d, %d, %d, %d]\nActual Output: %f\nExpected Output: %d", 
+				testInput[0], testInput[1], testInput[2], testInput[3], actualOutput, (int) expectedOutput)
+				);
+		System.out.println();
+	}
+	
 	/**Returns 0 if the bit pattern has even parity, and 1 otherwise.
 	 * @param e
 	 * @return
@@ -160,7 +192,7 @@ public class NeuralNet {
 		for (int i = 0; i < (networkSize[0] + networkSize[1] + networkSize[2]); i++) {
 			n = neurons.get(i);
 			
-			// if input
+			// if the neuron is in the input layer
 			if (i < networkSize[0]) {
 				n.setValue(trainingExample[i]);
 			}
@@ -236,7 +268,7 @@ public class NeuralNet {
 				error = neurons.get(j+networkSize[0]).getError();
 				
 				
-				weight = edgeweight+(LEARNING_RATE*error*sigResult*value);
+				weight = edgeweight+(learningRate*error*sigResult*value);
 
 				myWeights[j] = weight;
 			}
@@ -249,11 +281,11 @@ public class NeuralNet {
 			
 			for (int j = 0; j < networkSize[2]; j++) {
 				edgeweight = neurons.get(i).getEdgeWeight()[j] ;
-				sigResult = sigmoidDerivative(neurons.get(j+networkSize[1]).getSummationValue());
+				sigResult = sigmoidDerivative(neurons.get(j+networkSize[0]+networkSize[1]).getSummationValue());
 				value = neurons.get(i).getValue();
-				error = neurons.get(j+networkSize[1]).getError();
+				error = neurons.get(j+networkSize[0]+networkSize[1]).getError();
 				
-				weight = edgeweight+(LEARNING_RATE*error*sigResult*value);
+				weight = edgeweight+(learningRate*error*sigResult*value);
 
 				myWeights[j] = weight;
 			}

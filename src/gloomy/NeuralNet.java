@@ -14,7 +14,7 @@ import java.util.Random;
 public class NeuralNet {
 
 	final static int INPUT_LAYER_NODES = 4;
-	final static int  HIDDEN_LAYER_NODES = 4;		
+	final static int  HIDDEN_LAYER_NODES = 6;		
 	final static int OUTPUT_LAYER_NODES = 1;
 	final static long SEED = 4334562;
 	final double learningRate;
@@ -71,8 +71,9 @@ public class NeuralNet {
 				expectedOutput = getEvenParity(e); 
 				error =  expectedOutput - actualOutput;	//(ExpectedOutput - ActualOutput) at the output units 
 				
-				if (Math.abs(error) < .5)
+				if (Math.abs(error) < .5) {
 					correctClassifications++;
+				}
 				
 				propagateError(error); 	// Propagate error backwards until all nodes have an error contribution	
 				updateWeights();		// Update the weights in the network 	
@@ -142,8 +143,8 @@ public class NeuralNet {
 			for (int j = 0; j < networkSize[1]; j++) {
 				weight = ((double) rnd.nextInt(501) / 1000.0)
 						* Math.pow(-1, rnd.nextInt(2));
-
-				myWeights[j] = weight;
+				
+				myWeights[j] = (weight == 0) ? 0.05 * Math.pow(-1, rnd.nextInt(2)): weight;
 			}
 
 			Neuron neuron = new Neuron(0, 0.0, myWeights);

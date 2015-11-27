@@ -14,22 +14,27 @@ import java.util.Random;
 public class NeuralNet {
 
 	final static int INPUT_LAYER_NODES = 4;
-	final static int  HIDDEN_LAYER_NODES = 6;		
+	final static int  HIDDEN_LAYER_NODES = 9;		
 	final static int OUTPUT_LAYER_NODES = 1;
 	final static long SEED = 4334562;
 	final double learningRate;
-	final int maxEpoch;
+	final int maxEpoch = 50000;
 	
 	private List<Neuron> neurons;
 	private int[] networkSize; 		// # of indices represent the # of layers and the value at each index the # of neurons in that layer
 	private List<int[]> examples;	// holds all 4 bit combinations
 	private List<int[]> trainingSet;
+	private List<int[]> testingSet;
 	private int correctClassifications;
 	private Random rnd;					
 
-	public NeuralNet(double learningRate, int maxEpochs) {
-		
-		maxEpoch = maxEpochs;
+	/**
+	 * @param learningRate
+	 * @param maxEpochs
+	 * @param trainingRatio expects a value between 0 and 1 representing the percent
+	 */
+	public NeuralNet(double learningRate, double trainingRatio) {
+
 		this.learningRate = learningRate;
 		correctClassifications = 0;
 		rnd = new Random(SEED);
@@ -37,13 +42,73 @@ public class NeuralNet {
 		networkSize = new int[] { INPUT_LAYER_NODES, HIDDEN_LAYER_NODES, OUTPUT_LAYER_NODES };
 		examples = new ArrayList<int[]>();
 
-		initExamples();
+		initExamples();		//creates all possibles 4-bit combinations used for training
+		
+		// populate training set
 		trainingSet = new ArrayList<int[]>();
-		trainingSet.add(examples.get(3));
-		trainingSet = examples;
+		int setSize = (int) (trainingRatio * examples.size());
+		int currentSize = 0;
+		
+		if (setSize == examples.size()) {
+			trainingSet = examples;
+		}
+		else {
+			// populate training set with random examples from example set
+			while (currentSize < setSize) {
+				int[] input = examples.get(rnd.nextInt(examples.size()));
+				
+				if (!trainingSet.contains(input)) {
+					trainingSet.add(input);
+					currentSize++;
+				}
+			}
+		}
+		
+		// populate testing set
+		if (setSize == examples.size()) {
+			testingSet = examples;
+		}	
+		else {
+			testingSet = new ArrayList<int[]>();
+			setSize = examples.size() - trainingSet.size();
+			
+			for (int i = 0; i < setSize; ) {
+				if (!trainingSet.contains(examples.get(i))) {
+					testingSet.add(examples.get(i));
+					i++;
+				}
+			}
+			Collections.shuffle(testingSet, rnd);
+		}
+//		trainingSet = examples;
+//		testingSet = examples;
 		initNetwork();
 	}
 
+	// ACCESSORS
+	
+	public int getMaxEpoch() {
+		return maxEpoch;
+	}
+
+	public static int getInputLayerNodes() {
+		return INPUT_LAYER_NODES;
+	}
+
+	public static int getHiddenLayerNodes() {
+		return HIDDEN_LAYER_NODES;
+	}
+
+	public static int getOutputLayerNodes() {
+		return OUTPUT_LAYER_NODES;
+	}
+
+	public static long getSeed() {
+		return SEED;
+	}
+
+	// METHODS 
+	
 	/**DEBUG method
 	 * Prints each node out as a line of text
 	 */
@@ -61,9 +126,9 @@ public class NeuralNet {
 		double actualOutput = 0;
 		double expectedOutput = 0;
 		double error = 0;
-		
+		//TODO correctClassifications != trainingSet.size() || 
 		while (correctClassifications != trainingSet.size() || epoch <= maxEpoch) {	// all examples not classified correctly && not at maximum epoch
-			Collections.shuffle(examples, rnd);
+			Collections.shuffle(trainingSet, rnd);
 			
 			// each example e in the training set
 			for (int[] e : trainingSet) { 
@@ -77,31 +142,41 @@ public class NeuralNet {
 				
 				propagateError(error); 	// Propagate error backwards until all nodes have an error contribution	
 				updateWeights();		// Update the weights in the network 	
-				//printNetwork();
 			}
-			System.out.println(correctClassifications + " correct classifications");
-			correctClassifications = 0;
+			//System.out.println(correctClassifications + " correct classifications");
+			if (correctClassifications != trainingSet.size() || epoch <= maxEpoch)
+				correctClassifications = 0;
 			epoch++;
 		}
-		System.out.println("Training complete");
+		System.out.println("Training complete\n");
 	}
 	
 	public void run() {
 		
 		double actualOutput = 0;
 		double expectedOutput = 0;
+		int correctClassifications = 0;
 		
-		for (int[] testInput : trainingSet) {
+		for (int[] testInput : testingSet) {
 			actualOutput = getNeuralNetOutput(testInput); 	// forward pass , check
 			expectedOutput = getEvenParity(testInput); 	
+			
+			if (Math.abs(expectedOutput - actualOutput) < .5)
+				correctClassifications++;
+			
 			printOutput(testInput, actualOutput, expectedOutput);
 		}
+		System.out.println(String.format("Correct classifications: %d/%d", correctClassifications, testingSet.size()));
 	}
 
-
 	private void printOutput(int[] testInput, double actualOutput, double expectedOutput) {
-		System.out.println(String.format("Input: [ %d, %d, %d, %d]\nActual Output: %f\nExpected Output: %d", 
-				testInput[0], testInput[1], testInput[2], testInput[3], actualOutput, (int) expectedOutput)
+//		System.out.println(String.format("Input: [ %d, %d, %d, %d]\nActual Output: %f\nExpected Output: %d", 
+//				testInput[0], testInput[1], testInput[2], testInput[3], actualOutput, (int) expectedOutput)
+//				);
+//		System.out.println();
+		System.out.println(String.format("Input: [ %d, %d, %d, %d]\nActual Output: %d\nExpected Output: %d\nError: %f", 
+				testInput[0], testInput[1], testInput[2], testInput[3], (actualOutput >= .50) ? 1 : 0,
+						(int) expectedOutput, Math.abs(expectedOutput - actualOutput))
 				);
 		System.out.println();
 	}

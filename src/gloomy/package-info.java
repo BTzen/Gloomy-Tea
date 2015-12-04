@@ -1,8 +1,0 @@
-/**
- * 
- */
-/**
- * @author Anton
- *
- */
-package gloomy;

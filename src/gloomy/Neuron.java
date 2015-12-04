@@ -1,3 +1,9 @@
+/**
+ * Anton Kurylovich and Matt Billings
+ * COSC 3P71 Assignment 3
+ * 11/27/2015
+ * Neural Network Parity Checking
+ */
 package gloomy;
 
 // input is the summation of value*edgeWeight of nodes in previous layer
@@ -50,9 +56,7 @@ public class Neuron {
 	public void setError(double error) {
 		this.error = error;
 	}
-	
-	// Overrides
-	
+
 	public String toString() {
 		String s = "";
 		s += String.format("Layer: %d, Value: %.4f", layer, value);
